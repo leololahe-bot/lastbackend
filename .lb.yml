@@ -1,0 +1,57 @@
+workspace:
+  path: /data
+
+services:
+  - name: etcd
+    image: quay.io/coreos/etcd:latest
+    command: "/usr/local/bin/etcd --data-dir=/etcd-data --name node --initial-advertise-peer-urls
+        http://127.0.0.1:2380 --listen-peer-urls http://127.0.0.1:2380 --advertise-client-urls
+        http://127.0.0.1:2379 --listen-client-urls http://127.0.0.1:2379 --initial-cluster
+        node=http://127.0.0.1:2380"
+
+steps:
+  - name: test
+    image: golang:stretch
+    commands:
+      - apt-get -y install openssl
+      - mkdir -p ${GOPATH}/src/github.com/lastbackend/lastbackend
+      - cp -r /data/. ${GOPATH}/src/github.com/lastbackend/lastbackend
+      - cd ${GOPATH}/src/github.com/lastbackend/lastbackend
+      - make deps
+      - make test
+    when:
+      event: [push, pull_request, tag]
+
+registry:
+  - name: lastbackend
+    settings:
+      auto_tag: true
+      dockerfile: "./images/lastbackend/Dockerfile"
+    when:
+      event:
+        - push
+        - tag
+  - name: discovery
+    settings:
+      auto_tag: true
+      dockerfile: "./images/discovery/Dockerfile"
+    when:
+      event:
+        - push
+        - tag
+  - name: ingress
+    settings:
+      auto_tag: true
+      dockerfile: "./images/ingress/Dockerfile"
+    when:
+      event:
+        - push
+        - tag
+  - name: exporter
+    settings:
+      auto_tag: true
+      dockerfile: "./images/exporter/Dockerfile"
+    when:
+      event:
+        - push
+        
