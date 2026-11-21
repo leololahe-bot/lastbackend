@@ -1,0 +1,35 @@
+== Getting Started
+
+There is multiple ways you can use to start with Last.Backend:
+
+- Obtain resources with public Last.Backend clusters.
+- Obtain dedicated cluster from Last.Backend.
+- Deploy your own Last.Backend cluster and connect it to *control-panel*
+
+
+=== Ready to go environment
+
+Ready-to-go environment is available on https://app.lastbackend.com control panel for your experiments.
+In our control plane you can create new cluster, or connect existing cluster.
+
+There are several types of management for cluster connected to control panel:
+- WEB UI
+- CLI
+
+Using this panel you can manage multiple clusters located on defferent hosting providers from single point.
+
+=== Provision personal cluster
+
+There are many options how you can get local last.backend cluster.
+The most popular are:
+
+- local version with docker-machine
+You can easily create local environment with docker-machine.
+You can create local cluster contains 1 node or multiple nodes, with full fuctional support.
+This is a good point to start testing, or start contributing.
+
+- hosted version, provisioned with ansible
+Our team prepared ansible roles for deploy last.backend cluster on your favourite environment.
+Ansible roles located at separated repository https://github.com/lastbackend/ansible
+
+
