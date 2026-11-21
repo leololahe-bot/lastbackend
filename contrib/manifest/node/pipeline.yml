@@ -1,0 +1,99 @@
+kind: Pod
+version: v1
+meta:
+  name: lastbackend
+  labels:
+    app: lastbackend
+    type: job
+spec:
+  runtime:
+    services:
+      - etcd
+      - dind
+    tasks:
+      - name: clone:github.com/lastbackend/lastbackend
+        container: builder
+        commands:
+          - lb clone -v github -o lastbackend -n lastbackend -b master /data/
+      - name: step:test
+        container: test
+        commands:
+          - apt-get -y install openssl
+          - mkdir -p ${GOPATH}/src/github.com/lastbackend/lastbackend
+          - cp -r /data/. ${GOPATH}/src/github.com/lastbackend/lastbackend
+          - cd ${GOPATH}/src/github.com/lastbackend/lastbackend
+          - make deps
+          - make test
+      - name: build:hub.lstbknd.net/unloop/lastbackend:master
+        container: builder
+        commands:
+          - lb build -i hub.lstbknd.net/unloop/lastbackend:master -f ./images/lastbackend/Dockerfile .
+          - lb push hub.lstbknd.net/unloop/lastbackend:master
+      - name: build:hub.lstbknd.net/unloop/discovery:master
+        container: builder
+        commands:
+          - lb build -i hub.lstbknd.net/unloop/discovery:master -f ./images/discovery/Dockerfile .
+          - lb push hub.lstbknd.net/unloop/discovery:master
+      - name: build:hub.lstbknd.net/unloop/ingress:master
+        container: builder
+        commands:
+          - lb build -i hub.lstbknd.net/unloop/ingress:master -f ./images/ingress/Dockerfile .
+          - lb push hub.lstbknd.net/unloop/ingress:master
+      - name: build:hub.lstbknd.net/unloop/exporter:master
+        container: builder
+        commands:
+          - lb build -i hub.lstbknd.net/unloop/exporter:master -f ./images/exporter/Dockerfile .
+          - lb push hub.lstbknd.net/unloop/exporter:master
+  template:
+    containers:
+      - name: etcd
+        command: "/usr/local/bin/etcd --data-dir=/etcd-data --name node --initial-advertise-peer-urls
+              http://127.0.0.1:2380 --listen-peer-urls http://127.0.0.1:2380 --advertise-client-urls
+              http://127.0.0.1:2379 --listen-client-urls http://127.0.0.1:2379 --initial-cluster
+              node=http://127.0.0.1:2380"
+        image:
+          name: quay.io/coreos/etcd:latest
+      - name: test
+        volumes:
+          - name: data
+            path: /data/
+        workdir: /data/
+        env:
+          - name: DOCKER_HOST
+            value: tcp://127.0.0.1:2375
+          - name: ENV_GIT_TOKEN
+            secret:
+              name: vault:unloop:token
+              key: github
+          - name: ENV_DOCKER_TOKEN
+            secret:
+              name: vault:unloop:token
+              key: docker
+        image:
+          name: golang:stretch
+      - name: dind
+        image:
+          name: docker:18-dind
+        security:
+          privileged: true
+      - name: builder
+        volumes:
+          - name: data
+            path: /data/
+        workdir: /data/
+        env:
+          - name: ENV_GIT_TOKEN
+            secret:
+              name: vault:unloop:token
+              key: github
+          - name: ENV_DOCKER_TOKEN
+            secret:
+              name: vault:unloop:token
+              key: docker
+          - name: DOCKER_HOST
+            value: tcp://127.0.0.1:2375
+        image:
+          name: index.lstbknd.net/lastbackend/builder
+    volumes:
+      - name: data
+      
